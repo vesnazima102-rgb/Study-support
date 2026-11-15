@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Учебный трекер 🌸</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --paper-dark: #f2e9e1;
+            --paper-light: #fffcf9;
+            --text-main: #4a3b32;
+            --text-secondary: #8c786d;
+            --border-ink: #b59b8a;
+            --accent-pink: #e8a598;
+            --accent-blue: #93b5c6;
+            --accent-green: #a3c1ad;
+            --tape-color: rgba(210, 185, 155, 0.5);
+        }
+
+        [data-theme="dark"] {
+            --paper-dark: #0f172a;
+            --paper-light: rgba(30, 41, 59, 0.95);
+            --text-main: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-ink: #334155;
+            --accent-pink: #f472b6;
+            --accent-blue: #60a5fa;
+            --accent-green: #34d399;
+            --tape-color: rgba(51, 65, 85, 0.8);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--paper-dark);
+            color: var(--text-main);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; overflow: hidden; position: relative;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .stars-bg {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+            background: linear-gradient(135deg, #050b14 0%, #1e1b4b 100%);
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        [data-theme="dark"] .stars-bg { opacity: 1; }
+
+        .star {
+            position: absolute; width: 3px; height: 3px; background: #ffffff; border-radius: 50%;
+            box-shadow: 0 0 8px #ffffff, 0 0 12px #f472b6;
+            animation: fall linear infinite; opacity: 0.9;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-20px) translateX(0); opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateY(105vh) translateX(-50px); opacity: 0; }
+        }
+
+        .app-container {
+            width: 100%; max-width: 480px; height: 100vh; max-height: 900px;
+            background: var(--paper-light); display: flex; flex-direction: column;
+            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 2px solid var(--border-ink); border-radius: 16px; z-index: 2;
+            transition: background 0.3s, border-color 0.3s;
+            background-size: cover; background-position: center;
+        }
+        @media (min-width: 481px) {
+            .app-container { height: 880px; border-radius: 24px; }
+        }
+
+        /* СОХРАНЁННАЯ ШАПКА */
+        .header {
+            padding: 14px 16px; background: linear-gradient(135deg, #e8a598, #93b5c6);
+            color: #fff; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border-ink); gap: 8px;
+        }
+        .header h1 { font-size: 14px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); line-height: 1.2; }
+        
+        .header-icon-btn {
+            background: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255,255,255,0.55); border-radius: 50%;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 15px; transition: 0.2s; flex-shrink: 0;
+        }
+        .header-icon-btn:active { transform: scale(0.92); }
+        .header-icon-btn.active-gear { background: #fff; color: #4a3b32; }
+
+        .nav-tabs {
+            display: flex; background: var(--paper-dark); padding: 4px; border-bottom: 2px solid var(--border-ink); overflow-x: auto;
+        }
+        .tab-btn {
+            flex: 1; padding: 9px 6px; text-align: center; background: none; border: none;
+            font-size: 11px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-radius: 8px; transition: 0.2s; white-space: nowrap;
+        }
+        .tab-btn.active { background: var(--paper-light); color: var(--text-main); font-weight: 700; border: 1px solid var(--border-ink); border-bottom: none; }
+
+        .content {
+            flex: 1; overflow-y: auto; padding: 16px; background: var(--paper-light); display: none;
+            background-size: cover; background-position: center;
+        }
+        .content.active { display: block; }
+        .content.has-custom-bg { background-color: transparent; }
+
+        .card {
+            background: var(--paper-light); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 2px solid var(--border-ink);
+        }
+
+        .quick-days-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
+        }
+        .quick-day-card {
+            background: var(--paper-light); border: 2px solid var(--border-ink); border-radius: 12px;
+            padding: 10px 6px; text-align: center; cursor: pointer; transition: 0.2s;
+        }
+        .quick-day-card.active {
+            border-color: #e8a598; background: #fff5f2; box-shadow: 0 2px 8px rgba(232,165,152,0.3);
+        }
+        [data-theme="dark"] .quick-day-card.active { background: #312e81; }
+        .quick-day-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; }
+        .quick-day-date { font-size: 12px; font-weight: 700; color: var(--text-main); }
+
+        /* Стикеры предметов */
+        .subject-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;
+        }
+        .subject-sticker {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            background: #fff; border: 2px solid var(--border-ink); border-radius: 14px; position: relative;
+            box-shadow: 2px 2px 0 var(--tape-color);
+        }
+        [data-theme="dark"] .subject-sticker { background: #1e293b; }
+        .subject-icon-box {
+            font-size: 18px; width: 32px; height: 32px; background: #fdf2f8; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-ink); flex-shrink: 0;
+        }
+        [data-theme="dark"] .subject-icon-box { background: #0f172a; }
+        .subject-info h4 { font-size: 11px; font-weight: 700; color: var(--text-main); padding-right: 16px; }
+
+        /* Уроки на главной */
+        .day-lessons-preview { display: flex; flex-wrap: wrap; gap: 6px; }
+        .mini-lesson-badge {
+            display: flex; align-items: center; gap: 6px; background: #fff;
+            border: 1px solid var(--border-ink); padding: 6px 10px; border-radius: 10px;
+            font-size: 11px; font-weight: 600; color: var(--text-main); box-shadow: 2px 2px 0 var(--tape-color);
+        }
+        [data-theme="dark"] .mini-lesson-badge { background: #1e293b; }
+        .mini-lesson-num { background: #e8a598; color: #fff; width: 16px; height: 16px; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+        /* ДЗ элементы (чистый режим просмотра + зачёркивание) */
+        .hw-item {
+            display: flex; align-items: flex-start; gap: 12px; background: #fff;
+            padding: 14px; border-radius: 14px; margin-bottom: 10px; border: 2px solid var(--border-ink);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.05); position: relative; transition: 0.2s;
+        }
+        [data-theme="dark"] .hw-item { background: #1e293b; }
+        .hw-item.completed { opacity: 0.72; }
+        .hw-checkbox {
+            width: 22px; height: 22px; border: 2px solid var(--text-secondary); border-radius: 7px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; flex-shrink: 0; background: #fff; transition: 0.2s;
+        }
+        [data-theme="dark"] .hw-checkbox { background: #0f172a; }
+        .hw-item.completed .hw-checkbox { background: #34d399; border-color: #34d399; color: #fff; }
+        .hw-item.completed .hw-checkbox::after { content: '✓'; font-size: 13px; font-weight: 700; }
+        
+        .hw-content { flex: 1; }
+        .hw-title { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; transition: 0.2s; }
+        .hw-item.completed .hw-title,
+        .hw-item.completed .hw-desc { text-decoration: line-through; color: var(--text-secondary); }
+        .hw-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.4; }
+        .hw-date-badge { display: inline-block; font-size: 10px; background: var(--paper-dark); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px; font-weight: 600; border: 1px solid var(--border-ink); }
+        
+        .hw-images-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .hw-img-preview { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 1px solid var(--border-ink); }
+
+        .delete-btn {
+            position: absolute; top: 10px; right: 10px; background: none; border: none;
+            font-size: 15px; color: var(--text-secondary); cursor: pointer; padding: 4px;
+        }
+        .delete-btn:hover { color: #ef4444; }
+
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; }
+        .input-field, textarea, select {
+            width: 100%; padding: 10px 12px; border: 2px solid var(--border-ink); border-radius: 12px;
+            font-size: 13px; font-family: 'Montserrat', sans-serif; background: #fff; color: var(--text-main); outline: none;
+        }
+        [data-theme="dark"] .input-field, [data-theme="dark"] textarea, [data-theme="dark"] select { background: #0f172a; }
+        textarea { resize: vertical; height: 65px; }
+
+        .primary-btn {
+            width: 100%; background: #e8a598; color: #fff; border: 2px solid var(--border-ink); border-radius: 12px;
+            padding: 11px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0 var(--border-ink);
+        }
+        .primary-btn:active { transform: translateY(2px); box-shadow: none; }
+
+        .secondary-btn {
+            background: #fff; color: var(--text-main); border: 2px solid var(--border-ink); border-radius: 10px;
+            padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0 var(--tape-color);
+        }
+        [data-theme="dark"] .secondary-btn { background: #0f172a; }
+
+        .file-upload-label {
+            display: block; border: 2px dashed var(--border-ink); padding: 10px; text-align: center;
+            border-radius: 12px; cursor: pointer; font-size: 11px; color: var(--text-secondary); background: #fff;
+        }
+        [data-theme="dark"] .file-upload-label { background: #0f172a; }
+        .file-upload-label input { display: none; }
+
+        /* КАЛЕНДАРЬ (ЧИСТЫЙ ПРОСМОТР) */
+        .ghibli-calendar-card {
+            background: #fff; border-radius: 18px; padding: 16px; border: 2px solid var(--border-ink);
+            box-shadow: 4px 4px 0 var(--tape-color); margin-bottom: 14px; position: relative;
+            background-size: cover; background-position: center;
+        }
+        [data-theme="dark"] .ghibli-calendar-card { background: #1e293b; }
+
+        .cal-art-banner {
+            width: 100%; height: 175px; border-radius: 14px; border: 2px solid var(--border-ink);
+            background-size: cover; background-position: center;
+            margin-bottom: 12px; position: relative; overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cal-art-banner svg { width: 100%; height: 100%; display: block; }
+        .cal-art-title {
+            position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; font-weight: 700; color: #4a3b32;
+            background: rgba(255, 255, 255, 0.92); padding: 3px 12px; border-radius: 8px;
+            border: 1px solid var(--border-ink); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
+            z-index: 3;
+        }
+        [data-theme="dark"] .cal-art-title { background: rgba(15, 23, 42, 0.9); color: #f8fafc; }
+
+        .big-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; }
+        .big-cal-title { font-size: 16px; font-weight: 700; color: var(--text-main); background: rgba(255,255,255,0.75); padding: 2px 10px; border-radius: 8px; }
+        [data-theme="dark"] .big-cal-title { background: rgba(15,23,42,0.75); }
+        .cal-nav-btn { background: var(--paper-dark); border: 2px solid var(--border-ink); color: var(--text-main); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 1px 1px 0 var(--border-ink); }
+        
+        .big-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; }
+        .big-cal-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .big-cal-day {
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--paper-dark); border: 1px solid var(--border-ink); transition: 0.15s; position: relative;
+        }
+        .big-cal-day:hover { border-color: #e8a598; background: #fff5f2; }
+        .big-cal-day.empty { background: transparent; cursor: default; border: none; box-shadow: none; }
+        .big-cal-day.today { border: 2px solid #e8a598; font-weight: 700; color: #e8a598; }
+        .big-cal-day.has-event { background: #e8a598; color: #fff; font-weight: 700; border-color: var(--border-ink); }
+        .event-dot { width: 4px; height: 4px; background: #fff; border-radius: 50%; margin-top: 2px; }
+
+        /* Карточки расписания недели */
+        .day-manga-card {
+            background: rgba(255, 255, 255, 0.94); border-radius: 14px; padding: 14px;
+            border: 2px solid var(--border-ink); position: relative; margin-bottom: 12px;
+            box-shadow: 3px 3px 0 var(--tape-color);
+        }
+        [data-theme="dark"] .day-manga-card { background: rgba(30, 41, 59, 0.94); }
+        .day-manga-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px dashed var(--border-ink);
+        }
+        .day-manga-title { font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+        
+        .manga-bubbles-box { display: flex; flex-wrap: wrap; gap: 6px; }
+        .manga-bubble {
+            display: flex; align-items: center; gap: 6px;
+            background: #fdf2f8; color: var(--text-main); padding: 6px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 700; border: 1px solid var(--border-ink);
+            box-shadow: 1px 1px 0 var(--tape-color);
+        }
+        [data-theme="dark"] .manga-bubble { background: #0f172a; }
+        .manga-bubble-num { background: #e8a598; color: #fff; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 9px; }
+        .manga-bubble-del { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; margin-left: 2px; }
+
+        /* ВНУТРЕННИЕ ВКЛАДКИ НАСТРОЕК ⚙️ */
+        .settings-subtabs {
+            display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px;
+        }
+        .set-sub-btn {
+            padding: 7px 11px; border-radius: 10px; border: 2px solid var(--border-ink);
+            background: var(--paper-dark); color: var(--text-main); font-size: 11px; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+        }
+        .set-sub-btn.active {
+            background: #e8a598; color: #fff;
+        }
+        .settings-section { display: none; }
+        .settings-section.active { display: block; }
+
+        .bg-swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        .swatch-btn {
+            width: 34px; height: 34px; border-radius: 10px; border: 2px solid var(--border-ink); cursor: pointer;
+        }
+
+        .modal-screen {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div class="stars-bg" id="starsContainer"></div>
+
+    <div class="app-container" id="appContainer">
+        <!-- ШАПКА -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🌸 Учебный трекер & Календарь</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span id="headerDate" style="font-size: 11px; opacity: 0.95; white-space: nowrap;"></span>
+                <button class="header-icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Сменить тему">🌙</button>
+                <button class="header-icon-btn" id="settingsGearBtn" onclick="openSettingsTab()" title="Настройки">⚙️</button>
+            </div>
+        </div>
+
+        <!-- ОСНОВНАЯ НАВИГАЦИЯ (ТОЛЬКО ПРОСМОТР) -->
+        <div class="nav-tabs" id="mainNavTabs">
+            <button class="tab-btn active" onclick="switchTab('calendar', this)">📅 Главная</button>
+            <button class="tab-btn" onclick="switchTab('schedule', this)">🗓️ Расписание</button>
+            <button class="tab-btn" onclick="switchTab('yearcal', this)">✨ Календарь</button>
+            <button class="tab-btn" onclick="switchTab('hw', this)">📝 Все ДЗ</button>
+        </div>
+
+        <!-- ВКЛАДКА 1: ГЛАВНАЯ (ПРОСМОТР УРОКОВ И ЗАЧЁРКИВАНИЕ ДЗ) -->
+        <div class="content active" id="tab-calendar">
+            <div class="quick-days-grid" id="quickDaysGrid"></div>
+
+            <div class="card" style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">Выбрать дату:</span>
+                <input type="date" id="datePickerInput" class="input-field" style="width: auto; padding: 6px 10px;" onchange="selectDateFromPicker(this.value)">
+            </div>
+
+            <div class="card" id="daySchedulePreviewCard" style="margin-bottom: 12px;">
+                <h3 style="font-size: 12px; font-weight: 700; color: #e8a598; margin-bottom: 8px;">🗓️ Расписание на этот день</h3>
+                <div id="dayLessonsContainer" class="day-lessons-preview"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+                <h3 id="selectedDateTitle" style="font-size: 13px; font-weight: 700; color: var(--text-main);">Домашние задания</h3>
+                <button onclick="openAddHwModal()" class="secondary-btn">+ Записать ДЗ</button>
+            </div>
+            
+            <div id="dayHwList"></div>
+        </div>
+
+        <!-- ВКЛАДКА 2: РАСПИСАНИЕ (ТОЛЬКО ПРОСМОТР) -->
+        <div class="content" id="tab-schedule">
+            <div id="scheduleViewContainer"></div>
+        </div>
+
+        <!-- ВКЛАДКА 3: КАЛЕНДАРЬ (ТОЛЬКО ПРОСМОТР) -->
+        <div class="content" id="yearcal">
+            <div class="ghibli-calendar-card" id="ghibliCalendarCard">
+                <div class="cal-art-banner" id="calArtBanner">
+                    <div id="calArtSvgHolder" style="width:100%; height:100%;"></div>
+                    <div class="cal-art-title" id="calArtSubtitle">Месяц</div>
+                </div>
+                <div class="big-cal-header">
+                    <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+                    <div class="big-cal-title" id="bigCalMonthTitle">Месяц Год</div>
+                    <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+                </div>
+                <div class="big-cal-weekdays">
+                    <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                </div>
+                <div class="big-cal-days-grid" id="bigCalDaysGrid"></div>
+            </div>
+
+            <div class="card" id="calEventInfoCard" style="display:none;">
+                <h4 style="font-size: 12px; font-weight: 700; color: #e8a598; margin-bottom: 4px;" id="eventCardDateTitle">Событие</h4>
+                <p style="font-size: 12px; color: var(--text-main);" id="eventCardDescText"></p>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 4: ВСЕ ЗАДАНИЯ (ПРОСМОТР И ЗАЧЁРКИВАНИЕ) -->
+        <div class="content" id="tab-hw">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="font-size: 13px; font-weight: 700; color: var(--text-main);">Все домашние задания</h3>
+                <button onclick="openAddHwModal()" class="primary-btn" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Новое ДЗ</button>
+            </div>
+            <div id="allHwList"></div>
+        </div>
+
+        <!-- ВКЛАДКА 5: НАСТРОЙКИ ⚙️ -->
+        <div class="content" id="tab-settings">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">⚙️ Настройки</h2>
+                <button onclick="closeSettingsTab()" class="secondary-btn">← Назад</button>
+            </div>
+
+            <div class="settings-subtabs">
+                <button class="set-sub-btn active" onclick="switchSettingsSubtab('design', this)">🎨 Фоны и вид</button>
+                <button class="set-sub-btn" onclick="switchSettingsSubtab('schedule', this)">🗓️ Расписание</button>
+                <button class="set-sub-btn" onclick="switchSettingsSubtab('subjects', this)">📚 Предметы</button>
+                <button class="set-sub-btn" onclick="switchSettingsSubtab('events', this)">✨ События</button>
+            </div>
+
+            <!-- ПОДВКЛАДКА НАСТРОЕК 1: ФОНЫ И КАРТИНКИ -->
+            <div class="settings-section active" id="set-design">
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">📅 Фон карточки календаря</h3>
+                    <div class="bg-swatches" style="margin-bottom: 10px;">
+                        <button class="swatch-btn" style="background:#fffcf9;" onclick="setSectionBg('calendar', 'color:#fffcf9')" title="Кремовый"></button>
+                        <button class="swatch-btn" style="background:#fdf2f8;" onclick="setSectionBg('calendar', 'color:#fdf2f8')" title="Нежно-розовый"></button>
+                        <button class="swatch-btn" style="background:#eff6ff;" onclick="setSectionBg('calendar', 'color:#eff6ff')" title="Небесный"></button>
+                        <button class="swatch-btn" style="background:#f0fdf4;" onclick="setSectionBg('calendar', 'color:#f0fdf4')" title="Мятный"></button>
+                        <button class="swatch-btn" style="background:#fefce8;" onclick="setSectionBg('calendar', 'color:#fefce8')" title="Тёплый песок"></button>
+                    </div>
+                    <label class="file-upload-label" style="margin-bottom: 8px;">
+                        🖼️ Загрузить своё фото на фон календаря
+                        <input type="file" accept="image/*" onchange="uploadSectionBgImage('calendar', this)">
+                    </label>
+                    <button class="secondary-btn" style="width:100%;" onclick="resetSectionBg('calendar')">Сбросить фон календаря</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">🗓️ Фон вкладки «Расписание»</h3>
+                    <div class="bg-swatches" style="margin-bottom: 10px;">
+                        <button class="swatch-btn" style="background:#fffcf9;" onclick="setSectionBg('schedule', 'color:#fffcf9')" title="Кремовый"></button>
+                        <button class="swatch-btn" style="background:#fdf2f8;" onclick="setSectionBg('schedule', 'color:#fdf2f8')" title="Розовый"></button>
+                        <button class="swatch-btn" style="background:#f0f9ff;" onclick="setSectionBg('schedule', 'color:#f0f9ff')" title="Голубой"></button>
+                        <button class="swatch-btn" style="background:#f5f3ff;" onclick="setSectionBg('schedule', 'color:#f5f3ff')" title="Лавандовый"></button>
+                        <button class="swatch-btn" style="background:#ecfdf5;" onclick="setSectionBg('schedule', 'color:#ecfdf5')" title="Лесной"></button>
+                    </div>
+                    <label class="file-upload-label" style="margin-bottom: 8px;">
+                        🖼️ Загрузить своё фото на фон расписания
+                        <input type="file" accept="image/*" onchange="uploadSectionBgImage('schedule', this)">
+                    </label>
+                    <button class="secondary-btn" style="width:100%;" onclick="resetSectionBg('schedule')">Сбросить фон расписания</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">🏠 Общий фон приложения</h3>
+                    <label class="file-upload-label" style="margin-bottom: 8px;">
+                        🖼️ Загрузить обои для всего трекера
+                        <input type="file" accept="image/*" onchange="uploadSectionBgImage('app', this)">
+                    </label>
+                    <button class="secondary-btn" style="width:100%;" onclick="resetSectionBg('app')">Сбросить общие обои</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">🖼️ Картинка месяца в календаре</h3>
+                    <div class="input-group">
+                        <label>Выберите месяц</label>
+                        <select id="settingsMonthSelect" class="input-field">
+                            <option value="0">Январь</option>
+                            <option value="1">Февраль</option>
+                            <option value="2">Март</option>
+                            <option value="3">Апрель</option>
+                            <option value="4">Май</option>
+                            <option value="5">Июнь</option>
+                            <option value="6">Июль</option>
+                            <option value="7">Август</option>
+                            <option value="8">Сентябрь</option>
+                            <option value="9">Октябрь</option>
+                            <option value="10">Ноябрь</option>
+                            <option value="11">Декабрь</option>
+                        </select>
+                    </div>
+                    <label class="file-upload-label" style="margin-bottom: 8px;">
+                        📁 Выбрать свою иллюстрацию для месяца
+                        <input type="file" accept="image/*" onchange="uploadMonthCustomArtFromSettings(this)">
+                    </label>
+                    <button class="secondary-btn" style="width:100%;" onclick="resetMonthCustomArt()">Вернуть стандартный арт месяца</button>
+                </div>
+            </div>
+
+            <!-- ПОДВКЛАДКА НАСТРОЕК 2: РЕДАКТОР РАСПИСАНИЯ -->
+            <div class="settings-section" id="set-schedule">
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">Добавить урок в расписание</h3>
+                    <div class="input-group">
+                        <label>День недели</label>
+                        <select id="schDaySelect" class="input-field">
+                            <option value="1">Понедельник</option>
+                            <option value="2">Вторник</option>
+                            <option value="3">Среда</option>
+                            <option value="4">Четверг</option>
+                            <option value="5">Пятница</option>
+                            <option value="6">Суббота</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Номер урока (слот 1-8)</label>
+                        <select id="schSlotSelect" class="input-field">
+                            <option value="1">Урок 1</option>
+                            <option value="2">Урок 2</option>
+                            <option value="3">Урок 3</option>
+                            <option value="4">Урок 4</option>
+                            <option value="5">Урок 5</option>
+                            <option value="6">Урок 6</option>
+                            <option value="7">Урок 7</option>
+                            <option value="8">Урок 8</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Предмет</label>
+                        <select id="schSubjectSelect" class="input-field"></select>
+                    </div>
+                    <button class="primary-btn" onclick="addSubjectToScheduleSlot()">Добавить в расписание</button>
+                </div>
+
+                <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">Текущее расписание (можно удалять уроки)</h3>
+                <div id="scheduleEditContainer"></div>
+            </div>
+
+            <!-- ПОДВКЛАДКА НАСТРОЕК 3: РЕДАКТОР ПРЕДМЕТОВ -->
+            <div class="settings-section" id="set-subjects">
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">Добавить новый предмет</h3>
+                    <div class="input-group">
+                        <label>Название предмета</label>
+                        <input type="text" id="subNameInput" class="input-field" placeholder="Например: Литература">
+                    </div>
+                    <div class="input-group">
+                        <label>Иконка (эмодзи)</label>
+                        <input type="text" id="subIconInput" class="input-field" value="🌸" style="max-width: 70px; text-align: center;">
+                    </div>
+                    <button class="primary-btn" onclick="addSubject()">Сохранить предмет</button>
+                </div>
+
+                <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">Все предметы</h3>
+                <div class="subject-grid" id="subjectsGridDisplay"></div>
+            </div>
+
+            <!-- ПОДВКЛАДКА НАСТРОЕК 4: СОБЫТИЯ КАЛЕНДАРЯ -->
+            <div class="settings-section" id="set-events">
+                <div class="card">
+                    <h3 style="font-size: 13px; font-weight: 700; margin-bottom: 10px;">Добавить или изменить событие</h3>
+                    <div class="input-group">
+                        <label>Дата события</label>
+                        <input type="date" id="settingsEventDateInput" class="input-field" onchange="loadEventForSettingsDate(this.value)">
+                    </div>
+                    <div class="input-group">
+                        <label>Описание (оставьте пустым, чтобы удалить)</label>
+                        <input type="text" id="settingsEventTextInput" class="input-field" placeholder="Например: День рождения подруги 🎂">
+                    </div>
+                    <button class="primary-btn" onclick="saveEventFromSettings()">Сохранить событие</button>
+                </div>
+                <div id="allEventsListContainer"></div>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО ДЗ -->
+        <div class="modal-screen" id="hwModal">
+            <div class="card" style="width: 100%; max-height: 85vh; overflow-y: auto;">
+                <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">Добавить домашнее задание</h3>
+                <div class="input-group">
+                    <label>Предмет</label>
+                    <select id="hwSubjectSelect" class="input-field"></select>
+                </div>
+                <div class="input-group">
+                    <label>Дата сдачи</label>
+                    <input type="date" id="hwDateInput" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label>Описание задания</label>
+                    <textarea id="hwDescInput" placeholder="Что задали..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Прикрепить фото (до 5 шт)</label>
+                    <label class="file-upload-label">
+                        📁 Выбрать фото с устройства
+                        <input type="file" id="hwImageInput" accept="image/*" multiple onchange="handleFiles(this)">
+                    </label>
+                    <div id="imagePreviewContainer" style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="primary-btn" style="background:#fff; color:var(--text-main); border:2px solid var(--border-ink);" onclick="closeAddHwModal()">Отмена</button>
+                    <button class="primary-btn" onclick="saveHomework()">Записать</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО ФОТО -->
+        <div class="modal-screen" id="imageModal" onclick="closeImageModal()">
+            <button style="position: absolute; top: 20px; right: 20px; color: #fff; font-size: 24px; background: none; border: none; cursor: pointer;">×</button>
+            <img id="modalImgSrc" src="" style="max-width: 100%; max-height: 80vh; border-radius: 10px;">
+        </div>
+    </div>
+
+    <script>
+        function createStars() {
+            const container = document.getElementById('starsContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 40; i++) {
+                let star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * -100}px`;
+                star.style.animationDuration = `${2.5 + Math.random() * 4}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(star);
+            }
+        }
+        createStars();
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('study_theme', newTheme);
+            document.getElementById('themeToggleBtn').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            applyCustomBackgrounds();
+        }
+
+        const savedTheme = localStorage.getItem('study_theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggleBtn').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        let defaultSubjects = [
+            { id: 'def_1', name: 'Алгебра', icon: '📐' },
+            { id: 'def_2', name: 'Геометрия', icon: '📏' },
+            { id: 'def_3', name: 'Русский язык', icon: '✍️' },
+            { id: 'def_4', name: 'Английский язык', icon: '🇬🇧' },
+            { id: 'def_5', name: 'ОЭТ (Информатика)', icon: '💻' },
+            { id: 'def_6', name: 'История', icon: '📜' },
+            { id: 'def_7', name: 'Физика', icon: '⚡' },
+            { id: 'def_8', name: 'Литература', icon: '📖' },
+            { id: 'def_9', name: 'НВП', icon: '🪖' }
+        ];
+
+        let savedSubjects = JSON.parse(localStorage.getItem('study_subjects')) || [];
+        defaultSubjects.forEach(defSub => {
+            if (!savedSubjects.some(s => s.name.toLowerCase() === defSub.name.toLowerCase())) {
+                savedSubjects.push(defSub);
+            }
+        });
+        let subjects = savedSubjects;
+        localStorage.setItem('study_subjects', JSON.stringify(subjects));
+
+        let homeworks = JSON.parse(localStorage.getItem('study_homeworks')) || [];
+        let schedule = JSON.parse(localStorage.getItem('study_schedule_slots')) || { 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{} };
+        let calendarEvents = JSON.parse(localStorage.getItem('study_calendar_events')) || {};
+        let customMonthArts = JSON.parse(localStorage.getItem('study_custom_month_arts')) || {};
+        let customBgs = JSON.parse(localStorage.getItem('study_custom_bgs')) || {};
+
+        let selectedDateStr = formatDateKey(new Date());
+        let tempBase64Images = [];
+        let currentCalDate = new Date();
+        let lastActiveMainTab = 'calendar';
+
+        // --- НАВИГАЦИЯ И НАСТРОЙКИ ⚙️ ---
+        function switchTab(tabId, btn) {
+            lastActiveMainTab = tabId;
+            document.getElementById('settingsGearBtn').classList.remove('active-gear');
+            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId === 'yearcal' ? 'yearcal' : 'tab-' + tabId).classList.add('active');
+            if (btn) btn.classList.add('active');
+
+            if(tabId === 'calendar' || tabId === 'hw') renderHomeworks();
+            if(tabId === 'schedule') renderSchedule();
+            if(tabId === 'yearcal') renderBigCalendar();
+        }
+
+        function openSettingsTab() {
+            const settingsEl = document.getElementById('tab-settings');
+            const gearBtn = document.getElementById('settingsGearBtn');
+            if (settingsEl.classList.contains('active')) {
+                closeSettingsTab();
+                return;
+            }
+            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            settingsEl.classList.add('active');
+            gearBtn.classList.add('active-gear');
+
+            document.getElementById('settingsMonthSelect').value = currentCalDate.getMonth().toString();
+            document.getElementById('settingsEventDateInput').value = selectedDateStr;
+            loadEventForSettingsDate(selectedDateStr);
+            renderSubjects();
+            renderSchedule();
+            renderAllEventsList();
+        }
+
+        function closeSettingsTab() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const map = { 'calendar': 0, 'schedule': 1, 'yearcal': 2, 'hw': 3 };
+            const idx = map[lastActiveMainTab] !== undefined ? map[lastActiveMainTab] : 0;
+            switchTab(lastActiveMainTab, tabBtns[idx]);
+        }
+
+        function switchSettingsSubtab(subId, btn) {
+            document.querySelectorAll('.settings-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.set-sub-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('set-' + subId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // --- КАСТОМНЫЕ ФОНЫ ---
+        function setSectionBg(section, value) {
+            customBgs[section] = value;
+            localStorage.setItem('study_custom_bgs', JSON.stringify(customBgs));
+            applyCustomBackgrounds();
+        }
+
+        function uploadSectionBgImage(section, input) {
+            if (input.files && input.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    customBgs[section] = 'img:' + e.target.result;
+                    localStorage.setItem('study_custom_bgs', JSON.stringify(customBgs));
+                    applyCustomBackgrounds();
+                };
+                reader.readAsDataURL(input.files[0]);
+                input.value = '';
+            }
+        }
+
+        function resetSectionBg(section) {
+            delete customBgs[section];
+            localStorage.setItem('study_custom_bgs', JSON.stringify(customBgs));
+            applyCustomBackgrounds();
+        }
+
+        function applyCustomBackgrounds() {
+            const appEl = document.getElementById('appContainer');
+            const calCard = document.getElementById('ghibliCalendarCard');
+            const schTab = document.getElementById('tab-schedule');
+            const allContents = document.querySelectorAll('.content');
+
+            // Общий фон приложения
+            if (customBgs.app && customBgs.app.startsWith('img:')) {
+                appEl.style.backgroundImage = `url('${customBgs.app.slice(4)}')`;
+                allContents.forEach(c => c.classList.add('has-custom-bg'));
+            } else {
+                appEl.style.backgroundImage = 'none';
+                allContents.forEach(c => c.classList.remove('has-custom-bg'));
+            }
+
+            // Фон календаря
+            if (customBgs.calendar) {
+                if (customBgs.calendar.startsWith('img:')) {
+                    calCard.style.backgroundImage = `url('${customBgs.calendar.slice(4)}')`;
+                    calCard.style.backgroundColor = '';
+                } else if (customBgs.calendar.startsWith('color:')) {
+                    calCard.style.backgroundImage = 'none';
+                    calCard.style.backgroundColor = customBgs.calendar.slice(6);
+                }
+            } else {
+                calCard.style.backgroundImage = 'none';
+                calCard.style.backgroundColor = '';
+            }
+
+            // Фон расписания
+            if (customBgs.schedule) {
+                if (customBgs.schedule.startsWith('img:')) {
+                    schTab.style.backgroundImage = `url('${customBgs.schedule.slice(4)}')`;
+                    schTab.style.backgroundColor = '';
+                } else if (customBgs.schedule.startsWith('color:')) {
+                    schTab.style.backgroundImage = 'none';
+                    schTab.style.backgroundColor = customBgs.schedule.slice(6);
+                }
+            } else {
+                schTab.style.backgroundImage = 'none';
+                schTab.style.backgroundColor = '';
+            }
+        }
+
+        function formatDateKey(date) {
+            let year = date.getFullYear();
+            let month = String(date.getMonth() + 1).padStart(2, '0');
+            let day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // --- ПРЕДМЕТЫ (В НАСТРОЙКАХ) ---
+        function renderSubjects() {
+            const grid = document.getElementById('subjectsGridDisplay');
+            grid.innerHTML = '';
+            subjects.forEach(sub => {
+                grid.innerHTML += `
+                    <div class="subject-sticker">
+                        <div class="subject-icon-box">${sub.icon}</div>
+                        <div class="subject-info"><h4>${sub.name}</h4></div>
+                        <button onclick="deleteSubject('${sub.id}')" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-secondary); font-size:14px; cursor:pointer;">✕</button>
+                    </div>
+                `;
+            });
+            localStorage.setItem('study_subjects', JSON.stringify(subjects));
+        }
+
+        function addSubject() {
+            const nameInput = document.getElementById('subNameInput');
+            const iconInput = document.getElementById('subIconInput');
+            if(!nameInput.value.trim()) return alert('Введите название предмета');
+            subjects.push({ id: Date.now().toString(), name: nameInput.value.trim(), icon: iconInput.value.trim() || '🌸' });
+            nameInput.value = '';
+            renderSubjects();
+            renderSchedule();
+        }
+
+        function deleteSubject(id) {
+            subjects = subjects.filter(s => s.id !== id);
+            renderSubjects();
+            renderSchedule();
+        }
+
+        // --- РАСПИСАНИЕ (ПРОСМОТР + РЕДАКТОР В НАСТРОЙКАХ) ---
+        function renderSchedule() {
+            const select = document.getElementById('schSubjectSelect');
+            if (select) {
+                select.innerHTML = '';
+                subjects.forEach(sub => { select.innerHTML += `<option value="${sub.id}">${sub.icon} ${sub.name}</option>`; });
+            }
+
+            const viewContainer = document.getElementById('scheduleViewContainer');
+            const editContainer = document.getElementById('scheduleEditContainer');
+            viewContainer.innerHTML = '';
+            editContainer.innerHTML = '';
+
+            const dayNames = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
+
+            for (let dayNum = 1; dayNum <= 6; dayNum++) {
+                let slotsObj = schedule[dayNum] || {};
+                let viewBubblesHtml = '';
+                let editBubblesHtml = '';
+                let hasLessons = false;
+
+                for (let slot = 1; slot <= 8; slot++) {
+                    let subId = slotsObj[slot];
+                    let sub = subjects.find(s => s.id === subId);
+                    if (sub) {
+                        hasLessons = true;
+                        viewBubblesHtml += `
+                            <div class="manga-bubble">
+                                <span class="manga-bubble-num">${slot}</span>
+                                <span>${sub.icon} ${sub.name}</span>
+                            </div>
+                        `;
+                        editBubblesHtml += `
+                            <div class="manga-bubble">
+                                <span class="manga-bubble-num">${slot}</span>
+                                <span>${sub.icon} ${sub.name}</span>
+                                <button class="manga-bubble-del" onclick="removeSlot(${dayNum}, ${slot})">✕</button>
+                            </div>
+                        `;
+                    }
+                }
+                if (!hasLessons) {
+                    viewBubblesHtml = '<span style="font-size:11px; color:var(--text-secondary);">✨ Свободный день</span>';
+                    editBubblesHtml = '<span style="font-size:11px; color:var(--text-secondary);">✨ Свободный день</span>';
+                }
+
+                viewContainer.innerHTML += `
+                    <div class="day-manga-card">
+                        <div class="day-manga-header">
+                            <span class="day-manga-title">🌸 ${dayNames[dayNum]}</span>
+                        </div>
+                        <div class="manga-bubbles-box">${viewBubblesHtml}</div>
+                    </div>
+                `;
+
+                editContainer.innerHTML += `
+                    <div class="day-manga-card">
+                        <div class="day-manga-header">
+                            <span class="day-manga-title">🌸 ${dayNames[dayNum]}</span>
+                            <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary);">Слоты 1-8</span>
+                        </div>
+                        <div class="manga-bubbles-box">${editBubblesHtml}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function addSubjectToScheduleSlot() {
+            let dayNum = document.getElementById('schDaySelect').value;
+            let slotNum = document.getElementById('schSlotSelect').value;
+            let subId = document.getElementById('schSubjectSelect').value;
+            if (!schedule[dayNum]) schedule[dayNum] = {};
+            schedule[dayNum][slotNum] = subId;
+            localStorage.setItem('study_schedule_slots', JSON.stringify(schedule));
+            renderSchedule();
+        }
+
+        function removeSlot(dayNum, slotNum) {
+            if (schedule[dayNum]) {
+                delete schedule[dayNum][slotNum];
+                localStorage.setItem('study_schedule_slots', JSON.stringify(schedule));
+                renderSchedule();
+            }
+        }
+
+        /* ВСТРОЕННЫЕ ВЕКТОРНЫЕ GHIBLI-ИЛЛЮСТРАЦИИ */
+        const monthSvgArts = [
+            {
+                title: 'Январь • Тоторо и луна',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#f7e8ec"/>
+                    <circle cx="200" cy="70" r="46" fill="#fff7e6"/>
+                    <circle cx="115" cy="45" r="28" fill="#f3c1cf" opacity="0.8"/>
+                    <circle cx="285" cy="55" r="32" fill="#f3c1cf" opacity="0.8"/>
+                    <ellipse cx="200" cy="118" rx="42" ry="48" fill="#f5f3ef" stroke="#6d5c54" stroke-width="2.5"/>
+                    <polygon points="175,78 182,45 192,74" fill="#f5f3ef" stroke="#6d5c54" stroke-width="2.5"/>
+                    <polygon points="225,78 218,45 208,74" fill="#f5f3ef" stroke="#6d5c54" stroke-width="2.5"/>
+                    <circle cx="184" cy="92" r="5" fill="#fff" stroke="#6d5c54" stroke-width="2"/>
+                    <circle cx="184" cy="92" r="2" fill="#4a3b32"/>
+                    <circle cx="216" cy="92" r="5" fill="#fff" stroke="#6d5c54" stroke-width="2"/>
+                    <circle cx="216" cy="92" r="2" fill="#4a3b32"/>
+                    <ellipse cx="200" cy="97" rx="4" ry="2.5" fill="#6d5c54"/>
+                    <ellipse cx="200" cy="128" rx="14" ry="17" fill="#e6b87d" stroke="#6d5c54" stroke-width="2"/>
+                    <path d="M185,121 Q200,110 215,121 Z" fill="#a67c52" stroke="#6d5c54" stroke-width="2"/>
+                    <circle cx="135" cy="125" r="10" fill="#3a3230"/><circle cx="132" cy="124" r="2.5" fill="#fff"/><circle cx="138" cy="124" r="2.5" fill="#fff"/>
+                    <circle cx="265" cy="130" r="9" fill="#3a3230"/><circle cx="262" cy="129" r="2.5" fill="#fff"/><circle cx="268" cy="129" r="2.5" fill="#fff"/>
+                </svg>`
+            },
+            {
+                title: 'Февраль • Котик Кики под луной',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#d9cde0"/>
+                    <path d="M135,32 A22,22 0 1,0 160,55 A17,17 0 1,1 135,32 Z" fill="#fde68a"/>
+                    <circle cx="200" cy="75" r="45" fill="#ede4f2" opacity="0.6"/>
+                    <ellipse cx="205" cy="128" rx="28" ry="38" fill="#363237" stroke="#231f24" stroke-width="2"/>
+                    <circle cx="200" cy="82" r="24" fill="#363237" stroke="#231f24" stroke-width="2"/>
+                    <polygon points="180,68 176,34 196,60" fill="#363237" stroke="#231f24" stroke-width="2"/>
+                    <polygon points="220,68 224,34 204,60" fill="#363237" stroke="#231f24" stroke-width="2"/>
+                    <polygon points="183,64 180,43 193,59" fill="#d8a7b1"/>
+                    <polygon points="217,64 220,43 207,59" fill="#d8a7b1"/>
+                    <circle cx="191" cy="80" r="6" fill="#fff"/><circle cx="190" cy="80" r="2.5" fill="#231f24"/>
+                    <circle cx="209" cy="80" r="6" fill="#fff"/><circle cx="208" cy="80" r="2.5" fill="#231f24"/>
+                    <polygon points="200,106 186,99 186,113" fill="#e06d6d"/><polygon points="200,106 214,99 214,113" fill="#e06d6d"/><circle cx="200" cy="106" r="4" fill="#c94a4a"/>
+                    <circle cx="145" cy="145" r="25" fill="#9ea8c9"/><circle cx="255" cy="145" r="25" fill="#9ea8c9"/>
+                </svg>`
+            },
+            {
+                title: 'Март • Дракон Хаку',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#d6ebf2"/>
+                    <ellipse cx="110" cy="135" rx="55" ry="25" fill="#fff" opacity="0.8"/>
+                    <ellipse cx="290" cy="125" rx="60" ry="28" fill="#fff" opacity="0.8"/>
+                    <path d="M160,165 Q175,110 205,85 Q225,70 215,52" fill="none" stroke="#f8fafc" stroke-width="34" stroke-linecap="round"/>
+                    <path d="M148,165 Q162,115 190,90" fill="none" stroke="#88c9bf" stroke-width="10" stroke-linecap="round"/>
+                    <ellipse cx="212" cy="58" rx="22" ry="16" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+                    <path d="M198,46 L185,28 M218,44 L212,24" stroke="#d4b483" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M194,55 Q202,48 210,55" fill="none" stroke="#64b5a6" stroke-width="3"/>
+                    <circle cx="202" cy="57" r="3" fill="#334155"/>
+                    <circle cx="140" cy="60" r="4" fill="#f9a8d4"/><circle cx="275" cy="50" r="4" fill="#f9a8d4"/>
+                </svg>`
+            },
+            {
+                title: 'Апрель • Безликий и фонарики',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#f5dcd6"/>
+                    <circle cx="200" cy="72" r="45" fill="#fff3e6"/>
+                    <path d="M172,165 C172,95 182,45 205,45 C228,45 238,95 238,165 Z" fill="#2d292e"/>
+                    <ellipse cx="202" cy="78" rx="15" ry="21" fill="#f8fafc"/>
+                    <ellipse cx="195" cy="76" rx="3" ry="2" fill="#2d292e"/><ellipse cx="209" cy="76" rx="3" ry="2" fill="#2d292e"/>
+                    <polygon points="195,64 193,71 197,71" fill="#9d8ec7"/><polygon points="209,64 207,71 211,71" fill="#9d8ec7"/>
+                    <path d="M197,89 Q202,92 207,89" fill="none" stroke="#2d292e" stroke-width="2"/>
+                    <rect x="115" y="75" width="22" height="28" rx="10" fill="#f59e0b" stroke="#78350f" stroke-width="2"/>
+                    <rect x="275" y="75" width="22" height="28" rx="10" fill="#f59e0b" stroke="#78350f" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Май • Огонёк Кальцифер',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#e6dff2"/>
+                    <circle cx="235" cy="82" r="42" fill="#fff7ed"/>
+                    <path d="M145,105 C132,105 128,85 142,72 C145,58 155,52 158,68 C168,62 172,82 162,98 C158,105 150,105 145,105 Z" fill="#fb923c" stroke="#c2410c" stroke-width="2"/>
+                    <circle cx="145" cy="86" r="4" fill="#fff"/><circle cx="145" cy="86" r="1.5" fill="#000"/>
+                    <circle cx="155" cy="86" r="4" fill="#fff"/><circle cx="155" cy="86" r="1.5" fill="#000"/>
+                    <circle cx="225" cy="95" r="24" fill="#fde6d8" stroke="#6d5c54" stroke-width="2"/>
+                    <path d="M200,95 C200,65 250,65 250,95 C255,115 248,135 238,140 L212,140 C202,135 195,115 200,95 Z" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+                    <circle cx="214" cy="96" r="3" fill="#4a3b32"/>
+                    <path d="M198,135 L252,135 L258,165 L192,165 Z" fill="#93c5fd" stroke="#475569" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Июнь • Котобус под сакурой',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#f7dfe6"/>
+                    <path d="M150,35 A26,26 0 1,0 180,62 A20,20 0 1,1 150,35 Z" fill="#fffbeb"/>
+                    <ellipse cx="205" cy="115" rx="52" ry="42" fill="#d99b66" stroke="#6d4c3d" stroke-width="2.5"/>
+                    <polygon points="168,82 162,55 186,74" fill="#d99b66" stroke="#6d4c3d" stroke-width="2.5"/>
+                    <polygon points="238,82 246,55 222,74" fill="#d99b66" stroke="#6d4c3d" stroke-width="2.5"/>
+                    <circle cx="185" cy="96" r="8" fill="#fef08a" stroke="#6d4c3d" stroke-width="2"/><circle cx="185" cy="96" r="3" fill="#4a3b32"/>
+                    <circle cx="222" cy="96" r="8" fill="#fef08a" stroke="#6d4c3d" stroke-width="2"/><circle cx="222" cy="96" r="3" fill="#4a3b32"/>
+                    <path d="M175,116 Q205,134 235,116 Q205,124 175,116 Z" fill="#fff" stroke="#6d4c3d" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Июль • Ведьмочка Кики',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#f5e6e8"/>
+                    <circle cx="215" cy="85" r="46" fill="#fff7ed"/>
+                    <line x1="120" y1="145" x2="290" y2="75" stroke="#9a6b4c" stroke-width="6" stroke-linecap="round"/>
+                    <circle cx="215" cy="88" r="22" fill="#fde6d8" stroke="#4a3b32" stroke-width="2"/>
+                    <path d="M192,88 C192,62 238,62 238,88 Z" fill="#3b3330"/>
+                    <polygon points="215,62 195,46 198,68" fill="#e05a5a" stroke="#7f1d1d" stroke-width="1.5"/>
+                    <polygon points="215,62 235,46 232,68" fill="#e05a5a" stroke="#7f1d1d" stroke-width="1.5"/>
+                    <circle cx="205" cy="90" r="3" fill="#3b3330"/>
+                    <rect x="130" y="55" width="22" height="15" rx="2" fill="#fff" stroke="#94a3b8" stroke-width="1.5" transform="rotate(-15 130 55)"/>
+                    <rect x="265" y="45" width="22" height="15" rx="2" fill="#fff" stroke="#94a3b8" stroke-width="1.5" transform="rotate(12 265 45)"/>
+                </svg>`
+            },
+            {
+                title: 'Август • Летний вечер',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#e8ded8"/>
+                    <circle cx="195" cy="75" r="44" fill="#fffbeb"/>
+                    <circle cx="210" cy="90" r="22" fill="#fde6d8" stroke="#5c473e" stroke-width="2"/>
+                    <path d="M188,88 C188,60 234,60 234,88 C236,105 232,118 225,120 L195,120 Z" fill="#8c5a44" stroke="#5c473e" stroke-width="2"/>
+                    <circle cx="199" cy="92" r="3" fill="#4a3b32"/>
+                    <path d="M190,122 L232,122 L238,165 L184,165 Z" fill="#fff" stroke="#64748b" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Сентябрь • Золотая осень',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#f7e3d4"/>
+                    <circle cx="205" cy="80" r="46" fill="#fff7ed"/>
+                    <circle cx="205" cy="88" r="23" fill="#fde6d8" stroke="#6d5c54" stroke-width="2"/>
+                    <path d="M180,90 C180,58 232,58 232,90 C236,112 228,128 218,132 L192,132 Z" fill="#eab364" stroke="#855828" stroke-width="2"/>
+                    <circle cx="196" cy="92" r="3" fill="#4a3b32"/>
+                    <path d="M182,125 Q205,138 228,125 L236,165 L174,165 Z" fill="#f3c6cf" stroke="#8c5a66" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Октябрь • Тоторо под зонтом',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#d8e2dc"/>
+                    <path d="M135,52 Q195,12 255,52 Z" fill="#475569" stroke="#1e293b" stroke-width="2"/>
+                    <line x1="195" y1="52" x2="195" y2="115" stroke="#1e293b" stroke-width="3"/>
+                    <ellipse cx="205" cy="118" rx="46" ry="48" fill="#8c8a84" stroke="#4a4843" stroke-width="2.5"/>
+                    <polygon points="178,76 184,48 194,72" fill="#8c8a84" stroke="#4a4843" stroke-width="2.5"/>
+                    <polygon points="232,76 226,48 216,72" fill="#8c8a84" stroke="#4a4843" stroke-width="2.5"/>
+                    <ellipse cx="205" cy="126" rx="33" ry="32" fill="#f2efe9"/>
+                    <circle cx="188" cy="88" r="5" fill="#fff"/><circle cx="188" cy="88" r="2" fill="#000"/>
+                    <circle cx="222" cy="88" r="5" fill="#fff"/><circle cx="222" cy="88" r="2" fill="#000"/>
+                    <path d="M190,112 L195,108 L200,112 M205,112 L210,108 L215,112" fill="none" stroke="#6b6862" stroke-width="2"/>
+                    <ellipse cx="145" cy="142" rx="16" ry="20" fill="#93b5c6" stroke="#475569" stroke-width="2"/>
+                    <ellipse cx="262" cy="146" rx="13" ry="16" fill="#fff" stroke="#64748b" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Ноябрь • Огни города духов',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="novSky" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#6b5b95"/>
+                            <stop offset="100%" stop-color="#f7cac9"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="400" height="175" fill="url(#novSky)"/>
+                    <circle cx="135" cy="52" r="10" fill="#fbbf24" opacity="0.9"/>
+                    <circle cx="265" cy="60" r="8" fill="#fbbf24" opacity="0.8"/>
+                    <line x1="60" y1="138" x2="340" y2="138" stroke="#3b3054" stroke-width="5"/>
+                    <circle cx="200" cy="95" r="21" fill="#fde6d8" stroke="#4a3b32" stroke-width="2"/>
+                    <path d="M178,94 C178,66 222,66 222,94 C224,108 218,118 212,120 L188,120 Z" fill="#6d4c3d"/>
+                    <circle cx="191" cy="96" r="2.8" fill="#3b3054"/>
+                    <path d="M178,120 L222,120 L228,165 L172,165 Z" fill="#d9534f" stroke="#7f1d1d" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                title: 'Декабрь • Зимний вечер у окна',
+                svg: `<svg viewBox="0 0 400 175" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="400" height="175" fill="#7c5841"/>
+                    <rect x="65" y="20" width="110" height="115" rx="6" fill="#2c3e50" stroke="#4a3222" stroke-width="4"/>
+                    <line x1="120" y1="20" x2="120" y2="135" stroke="#4a3222" stroke-width="3"/>
+                    <line x1="65" y1="78" x2="175" y2="78" stroke="#4a3222" stroke-width="3"/>
+                    <circle cx="90" cy="45" r="2" fill="#fff"/><circle cx="145" cy="55" r="2.5" fill="#fff"/><circle cx="105" cy="105" r="2" fill="#fff"/>
+                    <circle cx="135" cy="115" r="14" fill="#fde047"/>
+                    <rect x="131" y="129" width="8" height="14" fill="#4a3222"/>
+                    <ellipse cx="175" cy="132" rx="11" ry="15" fill="#262626"/>
+                    <circle cx="175" cy="114" r="9" fill="#262626"/>
+                    <polygon points="168,108 167,98 173,106" fill="#262626"/><polygon points="182,108 183,98 177,106" fill="#262626"/>
+                    <circle cx="172" cy="113" r="2" fill="#fff"/><circle cx="178" cy="113" r="2" fill="#fff"/>
+                    <circle cx="245" cy="88" r="22" fill="#fde6d8" stroke="#4a3222" stroke-width="2"/>
+                    <path d="M223,88 C223,60 267,60 267,88 C270,106 262,118 255,120 L235,120 Z" fill="#6d4c3d"/>
+                    <circle cx="234" cy="90" r="3" fill="#3b3054"/>
+                    <path d="M218,118 L272,118 L278,165 L212,165 Z" fill="#d96b66" stroke="#7f1d1d" stroke-width="2"/>
+                </svg>`
+            }
+        ];
+
+        function uploadMonthCustomArtFromSettings(input) {
+            if (input.files && input.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let month = parseInt(document.getElementById('settingsMonthSelect').value, 10);
+                    customMonthArts[month] = e.target.result;
+                    localStorage.setItem('study_custom_month_arts', JSON.stringify(customMonthArts));
+                    renderBigCalendar();
+                    alert('Картинка для месяца сохранена!');
+                };
+                reader.readAsDataURL(input.files[0]);
+                input.value = '';
+            }
+        }
+
+        function resetMonthCustomArt() {
+            let month = parseInt(document.getElementById('settingsMonthSelect').value, 10);
+            delete customMonthArts[month];
+            localStorage.setItem('study_custom_month_arts', JSON.stringify(customMonthArts));
+            renderBigCalendar();
+            alert('Стандартный арт восстановлен!');
+        }
+
+        function renderBigCalendar() {
+            let year = currentCalDate.getFullYear();
+            let month = currentCalDate.getMonth();
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            document.getElementById('bigCalMonthTitle').textContent = `${monthNames[month]} ${year}`;
+
+            let art = monthSvgArts[month];
+            let banner = document.getElementById('calArtBanner');
+            let svgHolder = document.getElementById('calArtSvgHolder');
+            document.getElementById('calArtSubtitle').textContent = art.title;
+
+            if (customMonthArts[month]) {
+                banner.style.backgroundImage = `url('${customMonthArts[month]}')`;
+                svgHolder.innerHTML = '';
+            } else {
+                banner.style.backgroundImage = 'none';
+                svgHolder.innerHTML = art.svg;
+            }
+
+            let grid = document.getElementById('bigCalDaysGrid');
+            grid.innerHTML = '';
+
+            let firstDayIndex = new Date(year, month, 1).getDay();
+            let shift = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+            let totalDays = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < shift; i++) {
+                grid.innerHTML += `<div class="big-cal-day empty"></div>`;
+            }
+
+            let todayKey = formatDateKey(new Date());
+
+            for (let d = 1; d <= totalDays; d++) {
+                let mStr = String(month + 1).padStart(2, '0');
+                let dStr = String(d).padStart(2, '0');
+                let dateKey = `${year}-${mStr}-${dStr}`;
+
+                let isToday = dateKey === todayKey ? 'today' : '';
+                let hasEvent = calendarEvents[dateKey] ? 'has-event' : '';
+                let dotHtml = calendarEvents[dateKey] ? '<div class="event-dot"></div>' : '';
+
+                grid.innerHTML += `
+                    <div class="big-cal-day ${isToday} ${hasEvent}" onclick="clickBigCalDay('${dateKey}')">
+                        <span>${d}</span>
+                        ${dotHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function changeMonth(direction) {
+            currentCalDate.setMonth(currentCalDate.getMonth() + direction);
+            renderBigCalendar();
+        }
+
+        function clickBigCalDay(dateKey) {
+            let infoCard = document.getElementById('calEventInfoCard');
+            let dateTitle = document.getElementById('eventCardDateTitle');
+            let descText = document.getElementById('eventCardDescText');
+
+            dateTitle.textContent = `📅 ${dateKey}`;
+            descText.textContent = calendarEvents[dateKey] || 'На этот день событий нет (добавить можно в настройках ⚙️).';
+            infoCard.style.display = 'block';
+        }
+
+        // --- СОБЫТИЯ КАЛЕНДАРЯ В НАСТРОЙКАХ ---
+        function loadEventForSettingsDate(dateKey) {
+            document.getElementById('settingsEventTextInput').value = calendarEvents[dateKey] || '';
+        }
+
+        function saveEventFromSettings() {
+            let dateKey = document.getElementById('settingsEventDateInput').value;
+            let val = document.getElementById('settingsEventTextInput').value.trim();
+            if (!dateKey) return alert('Выберите дату');
+            if (val) { calendarEvents[dateKey] = val; } else { delete calendarEvents[dateKey]; }
+            localStorage.setItem('study_calendar_events', JSON.stringify(calendarEvents));
+            renderBigCalendar();
+            renderAllEventsList();
+            alert('Событие обновлено!');
+        }
+
+        function renderAllEventsList() {
+            const container = document.getElementById('allEventsListContainer');
+            const keys = Object.keys(calendarEvents).sort();
+            if (keys.length === 0) {
+                container.innerHTML = '<p style="font-size:11px; color:var(--text-secondary); text-align:center;">Записанных событий пока нет</p>';
+                return;
+            }
+            container.innerHTML = '';
+            keys.forEach(k => {
+                container.innerHTML += `
+                    <div class="card" style="padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size:11px; font-weight:700; color:#e8a598;">📅 ${k}</div>
+                            <div style="font-size:12px; color:var(--text-main);">${calendarEvents[k]}</div>
+                        </div>
+                        <button onclick="deleteEventFromSettings('${k}')" style="background:none; border:none; color:#ef4444; font-size:15px; cursor:pointer;">✕</button>
+                    </div>
+                `;
+            });
+        }
+
+        function deleteEventFromSettings(dateKey) {
+            delete calendarEvents[dateKey];
+            localStorage.setItem('study_calendar_events', JSON.stringify(calendarEvents));
+            renderBigCalendar();
+            renderAllEventsList();
+        }
+
+        function renderQuickDays() {
+            const grid = document.getElementById('quickDaysGrid');
+            grid.innerHTML = '';
+            let today = new Date();
+            for (let i = 0; i < 3; i++) {
+                let d = new Date(); d.setDate(today.getDate() + i);
+                let dateStr = formatDateKey(d);
+                let title = i === 0 ? 'Сегодня' : (i === 1 ? 'Завтра' : 'Послезавтра');
+                let dayNum = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+                grid.innerHTML += `
+                    <div class="quick-day-card ${dateStr === selectedDateStr ? 'active' : ''}" onclick="selectDate('${dateStr}')">
+                        <div class="quick-day-title">${title}</div>
+                        <div class="quick-day-date">${dayNum}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            document.getElementById('datePickerInput').value = dateStr;
+            renderQuickDays();
+            renderHomeworks();
+        }
+
+        function selectDateFromPicker(dateStr) {
+            if(dateStr) { selectedDateStr = dateStr; renderQuickDays(); renderHomeworks(); }
+        }
+
+        function openAddHwModal() {
+            if(subjects.length === 0) return alert('Сначала добавьте предметы в настройках ⚙️!');
+            let select = document.getElementById('hwSubjectSelect');
+            select.innerHTML = '';
+            subjects.forEach(sub => { select.innerHTML += `<option value="${sub.id}">${sub.icon} ${sub.name}</option>`; });
+            document.getElementById('hwDateInput').value = selectedDateStr;
+            document.getElementById('hwModal').style.display = 'flex';
+            tempBase64Images = [];
+            renderImagePreviews();
+            document.getElementById('hwDescInput').value = '';
+        }
+
+        function closeAddHwModal() { document.getElementById('hwModal').style.display = 'none'; }
+
+        function handleFiles(input) {
+            if (input.files && input.files.length > 0) {
+                let files = Array.from(input.files);
+                if (tempBase64Images.length + files.length > 5) return alert('Максимум 5 фото!');
+                files.forEach(file => {
+                    let reader = new FileReader();
+                    reader.onload = function(e) { tempBase64Images.push(e.target.result); renderImagePreviews(); };
+                    reader.readAsDataURL(file);
+                });
+                input.value = '';
+            }
+        }
+
+        function removeTempImage(idx) { tempBase64Images.splice(idx, 1); renderImagePreviews(); }
+
+        function renderImagePreviews() {
+            let container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = '';
+            tempBase64Images.forEach((src, idx) => {
+                container.innerHTML += `
+                    <div style="position:relative; display:inline-block;">
+                        <img src="${src}" style="width:50px; height:50px; object-fit:cover; border-radius:6px; border:1px solid var(--border-ink);">
+                        <button type="button" onclick="removeTempImage(${idx})" style="position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:16px; height:16px; font-size:9px; cursor:pointer;">✕</button>
+                    </div>
+                `;
+            });
+        }
+
+        function saveHomework() {
+            const subId = document.getElementById('hwSubjectSelect').value;
+            const dateInputVal = document.getElementById('hwDateInput').value;
+            const date = dateInputVal ? dateInputVal : selectedDateStr;
+            const desc = document.getElementById('hwDescInput').value.trim();
+            if(!date) return alert('Выберите дату!');
+
+            let sub = subjects.find(s => s.id === subId) || { name: 'Задание', icon: '📚' };
+            homeworks.push({
+                id: Date.now().toString(), subjectId: subId,
+                title: desc ? (desc.length > 25 ? desc.substring(0, 25) + '...' : desc) : `ДЗ (${sub.name})`,
+                date: date, desc: desc, images: [...tempBase64Images], completed: false
+            });
+
+            localStorage.setItem('study_homeworks', JSON.stringify(homeworks));
+            closeAddHwModal(); renderQuickDays(); renderHomeworks();
+        }
+
+        function toggleHwComplete(id) {
+            let hw = homeworks.find(h => h.id === id);
+            if(hw) { hw.completed = !hw.completed; localStorage.setItem('study_homeworks', JSON.stringify(homeworks)); renderHomeworks(); }
+        }
+
+        function deleteHomework(id) {
+            homeworks = homeworks.filter(h => h.id !== id);
+            localStorage.setItem('study_homeworks', JSON.stringify(homeworks)); renderHomeworks();
+        }
+
+        function renderHomeworks() {
+            let [y, m, d] = selectedDateStr.split('-');
+            let dateObj = new Date(y, m - 1, d);
+            let jsDay = dateObj.getDay();
+            let scheduleDayKey = jsDay === 0 ? 7 : jsDay;
+            
+            let daySlots = schedule[scheduleDayKey] || {};
+            let lessonsContainer = document.getElementById('dayLessonsContainer');
+            lessonsContainer.innerHTML = '';
+
+            let hasLessonsToday = false;
+            for (let slot = 1; slot <= 8; slot++) {
+                let subId = daySlots[slot];
+                let sub = subjects.find(s => s.id === subId);
+                if (sub) {
+                    hasLessonsToday = true;
+                    lessonsContainer.innerHTML += `
+                        <div class="mini-lesson-badge">
+                            <span class="mini-lesson-num">${slot}</span>
+                            <span>${sub.icon} ${sub.name}</span>
+                        </div>
+                    `;
+                }
+            }
+            if (!hasLessonsToday) lessonsContainer.innerHTML = '<span style="font-size:11px; color:var(--text-secondary);">✨ На этот день уроков нет</span>';
+
+            const dayListContainer = document.getElementById('dayHwList');
+            let prettyDate = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            document.getElementById('selectedDateTitle').textContent = `ДЗ на ${prettyDate}`;
+
+            let dayHws = homeworks.filter(h => h.date === selectedDateStr);
+            dayListContainer.innerHTML = dayHws.length === 0 ? '<p style="font-size:11px; color:var(--text-secondary); text-align:center; padding:8px;">Нет домашних заданий ✨</p>' : '';
+            dayHws.forEach(hw => {
+                let sub = subjects.find(s => s.id === hw.subjectId) || { name: 'Предмет', icon: '📚' };
+                dayListContainer.innerHTML += createHwCardHtml(hw, sub);
+            });
+
+            const allListContainer = document.getElementById('allHwList');
+            allListContainer.innerHTML = homeworks.length === 0 ? '<p style="font-size:11px; color:var(--text-secondary); text-align:center; padding:15px;">Список пуст</p>' : '';
+            let sortedHws = [...homeworks].sort((a,b) => new Date(a.date) - new Date(b.date));
+            sortedHws.forEach(hw => {
+                let sub = subjects.find(s => s.id === hw.subjectId) || { name: 'Предмет', icon: '📚' };
+                allListContainer.innerHTML += createHwCardHtml(hw, sub);
+            });
+        }
+
+        function createHwCardHtml(hw, sub) {
+            let imagesHtml = '';
+            let imgList = hw.images || (hw.image ? [hw.image] : []);
+            if (imgList.length > 0) {
+                imagesHtml = '<div class="hw-images-grid">';
+                imgList.forEach(imgSrc => { imagesHtml += `<img src="${imgSrc}" class="hw-img-preview" onclick="openImageModal('${imgSrc}')">`; });
+                imagesHtml += '</div>';
+            }
+            return `
+                <div class="hw-item ${hw.completed ? 'completed' : ''}">
+                    <div class="hw-checkbox" onclick="toggleHwComplete('${hw.id}')" title="Отметить выполненным"></div>
+                    <div class="hw-content" style="padding-right: 22px;">
+                        <div class="hw-title">${sub.icon} ${sub.name}</div>
+                        ${hw.desc ? `<div class="hw-desc">${hw.desc}</div>` : ''}
+                        <span class="hw-date-badge">📅 Срок: ${hw.date}</span>
+                        ${imagesHtml}
+                    </div>
+                    <button class="delete-btn" onclick="deleteHomework('${hw.id}')" title="Удалить">✕</button>
+                </div>
+            `;
+        }
+
+        function openImageModal(src) {
+            document.getElementById('modalImgSrc').src = src;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+        function closeImageModal() { document.getElementById('imageModal').style.display = 'none'; }
+
+        window.onload = function() {
+            applyCustomBackgrounds();
+            renderSubjects();
+            renderQuickDays();
+            renderHomeworks();
+            renderSchedule();
+            renderBigCalendar();
+            document.getElementById('datePickerInput').value = selectedDateStr;
+            document.getElementById('headerDate').textContent = new Date().toLocaleDateString('ru-RU', {day: 'numeric', month: 'long'});
+        }
+    </script>
+</body>
+</html>
